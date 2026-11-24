@@ -11,7 +11,7 @@ jobs:
           THEOS: /home/runner/theos
         run: |
           set -e
-          sudo apt-get update && sudo apt-get install -y g++ zip curl git unzip make perl xz-utils zstd jq pkg-config libplist-dev libssl-dev
+          sudo apt-get update && sudo apt-get install -y g++ zip curl git unzip make perl xz-utils zstd jq fakeroot pkg-config libplist-dev libssl-dev
 
           # 1. Cài ldid
           LDID_URL=$(curl -fsSL -H "Authorization: Bearer $GITHUB_TOKEN" https://api.github.com/repos/ProcursusTeam/ldid/releases \
@@ -24,36 +24,23 @@ jobs:
             sudo cp /tmp/ldid/ldid /usr/local/bin/ldid
           fi
 
-          # 2. Cài Theos & Toolchain iOS từ theos/toolchains
-          git clone --recursive --depth 1 https://github.com/theos/theos.git "$THEOS"
-          mkdir -p "$THEOS/toolchain/linux/iphone" "$THEOS/sdks"
-
-          TOOLCHAIN_URL=$(curl -fsSL -H "Authorization: Bearer $GITHUB_TOKEN" https://api.github.com/repos/theos/toolchains/releases \
-            | jq -r '[.[].assets[]? | select(.name | test("linux.*(x86_64|amd64)[.](tar[.](xz|zst|gz)|zip)$"; "i")) | .browser_download_url][0] // empty')
-          test -n "$TOOLCHAIN_URL"
-          curl -fsSL "$TOOLCHAIN_URL" -o toolchain.pkg
-          case "$TOOLCHAIN_URL" in
-            *.zip) unzip -q toolchain.pkg -d "$THEOS/toolchain/linux/iphone" ;;
-            *) tar -xf toolchain.pkg -C "$THEOS/toolchain/linux/iphone" ;;
-          esac
-          CLANG_BIN=$(find "$THEOS/toolchain/linux/iphone" -name "clang" \( -type f -o -type l \) | head -n 1)
-          TOOLCHAIN_ROOT=$(dirname "$(dirname "$CLANG_BIN")")
-          if [ "$TOOLCHAIN_ROOT" != "$THEOS/toolchain/linux/iphone" ]; then
-            mv "$TOOLCHAIN_ROOT/"* "$THEOS/toolchain/linux/iphone/"
-          fi
+          # 2. Cài Theos & Toolchain iOS qua bộ cài chính thức của Theos
+          curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos -o /tmp/install-theos
+          yes "" | bash /tmp/install-theos
           test -x "$THEOS/toolchain/linux/iphone/bin/clang"
 
-          # 3. Tải iPhoneOS9.3.sdk (hỗ trợ kiến trúc 32-bit armv7 cho iOS 6)
+          # 3. Nạp iPhoneOS9.3.sdk (hỗ trợ chip 32-bit armv7 của iPod touch 4)
+          mkdir -p "$THEOS/sdks"
           git clone --depth 1 --filter=blob:none --sparse https://github.com/xybp888/iOS-SDKs.git /tmp/iOS-SDKs
-          git -C /tmp/iOS-SDKs sparse-checkout set iPhoneOS9.3.sdk iPhoneOS10.3.sdk
-          cp -r /tmp/iOS-SDKs/iPhoneOS*.sdk "$THEOS/sdks/"
+          git -C /tmp/iOS-SDKs sparse-checkout set iPhoneOS9.3.sdk
+          cp -r /tmp/iOS-SDKs/iPhoneOS9.3.sdk "$THEOS/sdks/"
 
       - name: Compile & Package IPA
         env:
           THEOS: /home/runner/theos
         run: |
           set -e
-          make FINALPACKAGE=1
+          make FINALPACKAGE=1 ADDITIONAL_CFLAGS="-Wno-deprecated-declarations"
           APP_PATH=$(find .theos/obj -name "iPodClassicU2.app" -type d | head -n 1)
           ldid -S "$APP_PATH/iPodClassicU2"
           mkdir -p Payload
