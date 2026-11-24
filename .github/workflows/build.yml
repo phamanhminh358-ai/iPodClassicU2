@@ -1,0 +1,26 @@
+name: Build iOS 6 IPA
+on: [push, workflow_dispatch]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Theos & iOS SDK
+        run: |
+          sudo apt-get update && sudo apt-get install -y clang ldid zip curl git
+          git clone --recursive https://github.com/theos/theos.git ~/theos
+          mkdir -p ~/theos/sdks
+          curl -L https://github.com/theos/sdks/archive/refs/heads/master.zip -o sdks.zip
+          unzip -q sdks.zip && cp -r sdks-master/iPhoneOS*.sdk ~/theos/sdks/
+      - name: Compile & Package IPA
+        env:
+          THEOS: /home/runner/theos
+        run: |
+          make
+          mkdir -p Payload
+          cp -r .theos/obj/debug/iPodClassicU2.app Payload/
+          zip -qr iPodClassicU2.ipa Payload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: iPodClassicU2-IPA
+          path: iPodClassicU2.ipa
