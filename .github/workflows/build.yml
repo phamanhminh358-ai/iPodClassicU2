@@ -5,13 +5,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - name: Install Theos & iOS SDK
+      - name: Install Theos, Toolchain & iOS SDK
         run: |
-          sudo apt-get update && sudo apt-get install -y clang zip curl git unzip make perl
+          sudo apt-get update && sudo apt-get install -y clang zip curl git unzip make perl xz-utils
           curl -L https://github.com/theos/ldid/releases/latest/download/ldid_linux_x86_64 -o ldid || curl -L https://github.com/ProcursusTeam/ldid/releases/latest/download/ldid_linux-amd64 -o ldid
           chmod +x ldid && sudo mv ldid /usr/local/bin/ldid
           git clone --recursive https://github.com/theos/theos.git ~/theos
-          mkdir -p ~/theos/sdks
+          mkdir -p ~/theos/toolchain/linux/iphone ~/theos/sdks
+          TOOLCHAIN_URL=$(curl -s https://api.github.com/repos/theos/toolchain/releases/latest | grep -oE "https://[^\"]*linux-x86_64[^\"]*\.(tar\.(xz|zst|gz)|zip)" | head -n 1)
+          curl -L "$TOOLCHAIN_URL" -o toolchain.pkg
+          if [[ "$TOOLCHAIN_URL" == *.zip ]]; then
+            unzip -q toolchain.pkg -d ~/theos/toolchain/linux/iphone
+          else
+            tar -xf toolchain.pkg -C ~/theos/toolchain/linux/iphone
+          fi
+          if [ -d ~/theos/toolchain/linux/iphone/iphone ]; then
+            mv ~/theos/toolchain/linux/iphone/iphone/* ~/theos/toolchain/linux/iphone/
+          fi
           curl -L https://github.com/theos/sdks/archive/refs/heads/master.zip -o sdks.zip
           unzip -q sdks.zip && cp -r sdks-master/iPhoneOS*.sdk ~/theos/sdks/
       - name: Compile & Package IPA
