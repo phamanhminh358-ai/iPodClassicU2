@@ -5,32 +5,41 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - name: Install Theos, Toolchain & iOS SDK
+      - name: Install Theos, Toolchain & ARMv7 SDK
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          THEOS: /home/runner/theos
         run: |
-          sudo apt-get update && sudo apt-get install -y clang zip curl git unzip make perl xz-utils
-          curl -L https://github.com/theos/ldid/releases/latest/download/ldid_linux_x86_64 -o ldid || curl -L https://github.com/ProcursusTeam/ldid/releases/latest/download/ldid_linux-amd64 -o ldid
+          set -e
+          sudo apt-get update && sudo apt-get install -y clang zip curl git unzip make perl xz-utils zstd jq
+          curl -fsSL -H "Authorization: Bearer $GITHUB_TOKEN" https://github.com/theos/ldid/releases/latest/download/ldid_linux_x86_64 -o ldid \
+            || curl -fsSL -H "Authorization: Bearer $GITHUB_TOKEN" https://github.com/ProcursusTeam/ldid/releases/latest/download/ldid_linux-amd64 -o ldid
           chmod +x ldid && sudo mv ldid /usr/local/bin/ldid
-          git clone --recursive https://github.com/theos/theos.git ~/theos
-          mkdir -p ~/theos/toolchain/linux/iphone ~/theos/sdks
-          TOOLCHAIN_URL=$(curl -s https://api.github.com/repos/theos/toolchain/releases/latest | grep -oE "https://[^\"]*linux-x86_64[^\"]*\.(tar\.(xz|zst|gz)|zip)" | head -n 1)
-          curl -L "$TOOLCHAIN_URL" -o toolchain.pkg
-          if [[ "$TOOLCHAIN_URL" == *.zip ]]; then
-            unzip -q toolchain.pkg -d ~/theos/toolchain/linux/iphone
-          else
-            tar -xf toolchain.pkg -C ~/theos/toolchain/linux/iphone
+
+          git clone --recursive https://github.com/theos/theos.git "$THEOS"
+          mkdir -p "$THEOS/toolchain/linux/iphone" "$THEOS/sdks"
+
+          TOOLCHAIN_URL=$(curl -fsSL -H "Authorization: Bearer $GITHUB_TOKEN" https://api.github.com/repos/theos/toolchain/releases/latest \
+            | jq -r '.assets[] | select(.name | test("linux.*x86_64|x86_64.*linux"; "i")) | .browser_download_url' | head -n 1)
+          curl -fsSL "$TOOLCHAIN_URL" -o toolchain.tar.xz
+          tar -xf toolchain.tar.xz -C "$THEOS/toolchain/linux/iphone"
+          if [ -d "$THEOS/toolchain/linux/iphone/iphone" ]; then
+            mv "$THEOS/toolchain/linux/iphone/iphone/"* "$THEOS/toolchain/linux/iphone/"
           fi
-          if [ -d ~/theos/toolchain/linux/iphone/iphone ]; then
-            mv ~/theos/toolchain/linux/iphone/iphone/* ~/theos/toolchain/linux/iphone/
-          fi
-          curl -L https://github.com/theos/sdks/archive/refs/heads/master.zip -o sdks.zip
-          unzip -q sdks.zip && cp -r sdks-master/iPhoneOS*.sdk ~/theos/sdks/
+          test -x "$THEOS/toolchain/linux/iphone/bin/clang"
+
+          curl -fsSL https://github.com/xybp888/iOS-SDKs/archive/refs/heads/master.zip -o sdks.zip
+          unzip -q sdks.zip
+          cp -r iOS-SDKs-master/iPhoneOS9.3.sdk "$THEOS/sdks/" || cp -r iOS-SDKs-master/iPhoneOS10.3.sdk "$THEOS/sdks/"
       - name: Compile & Package IPA
         env:
           THEOS: /home/runner/theos
         run: |
-          make
+          set -e
+          make FINALPACKAGE=1
+          APP_PATH=$(find .theos/obj -name "iPodClassicU2.app" -type d | head -n 1)
           mkdir -p Payload
-          cp -r .theos/obj/debug/iPodClassicU2.app Payload/
+          cp -r "$APP_PATH" Payload/
           zip -qr iPodClassicU2.ipa Payload
       - uses: actions/upload-artifact@v4
         with:
