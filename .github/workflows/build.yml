@@ -4,10 +4,12 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install Theos & iOS SDK
         run: |
-          sudo apt-get update && sudo apt-get install -y clang ldid zip curl git
+          sudo apt-get update && sudo apt-get install -y clang zip curl git unzip make perl
+          curl -L https://github.com/theos/ldid/releases/latest/download/ldid_linux_x86_64 -o ldid || curl -L https://github.com/ProcursusTeam/ldid/releases/latest/download/ldid_linux-amd64 -o ldid
+          chmod +x ldid && sudo mv ldid /usr/local/bin/ldid
           git clone --recursive https://github.com/theos/theos.git ~/theos
           mkdir -p ~/theos/sdks
           curl -L https://github.com/theos/sdks/archive/refs/heads/master.zip -o sdks.zip
