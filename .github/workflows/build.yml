@@ -2,7 +2,7 @@ name: Build iOS 6 IPA
 on: [push, workflow_dispatch]
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
       - name: Install Theos, Toolchain & ARMv7 SDK
@@ -24,7 +24,7 @@ jobs:
             sudo cp /tmp/ldid/ldid /usr/local/bin/ldid
           fi
 
-          # 2. Cài Theos & Toolchain iOS qua bộ cài chính thức của Theos
+          # 2. Cài Theos & Toolchain iOS qua bộ cài chính thức trên Ubuntu 24.04
           curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos -o /tmp/install-theos
           yes "" | bash /tmp/install-theos
           test -x "$THEOS/toolchain/linux/iphone/bin/clang"
