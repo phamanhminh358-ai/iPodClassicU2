@@ -41,10 +41,18 @@ jobs:
         run: |
           set -e
           make FINALPACKAGE=1 ADDITIONAL_CFLAGS="-Wno-deprecated-declarations"
-          APP_PATH=$(find .theos/obj -name "iPodClassicU2.app" -type d | head -n 1)
-          ldid -S "$APP_PATH/iPodClassicU2"
-          mkdir -p Payload
-          cp -r "$APP_PATH" Payload/
+          RAW_APP=$(find .theos/obj -maxdepth 3 -name "*.app" -type d | head -n 1)
+          test -n "$RAW_APP"
+
+          mkdir -p Payload/iPodClassicU2.app
+          cp -r "$RAW_APP/"* Payload/iPodClassicU2.app/
+
+          PLIST_PATH=$(find . -maxdepth 3 -name "Info.plist" -not -path "./.theos/*" -not -path "./Payload/*" | head -n 1)
+          test -n "$PLIST_PATH"
+          cp "$PLIST_PATH" Payload/iPodClassicU2.app/Info.plist
+          cp Icon*.png Payload/iPodClassicU2.app/ 2>/dev/null || true
+
+          ldid -S Payload/iPodClassicU2.app/iPodClassicU2
           zip -qr iPodClassicU2.ipa Payload
 
       - uses: actions/upload-artifact@v4
