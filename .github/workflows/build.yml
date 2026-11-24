@@ -1,4 +1,4 @@
-name: Build iOS 6 IPA
+name: Build iOS 6 IPA & DEB
 on: [push, workflow_dispatch]
 jobs:
   build:
@@ -11,7 +11,7 @@ jobs:
           THEOS: /home/runner/theos
         run: |
           set -e
-          sudo apt-get update && sudo apt-get install -y g++ zip curl git unzip make perl xz-utils zstd jq fakeroot pkg-config libplist-dev libssl-dev
+          sudo apt-get update && sudo apt-get install -y g++ zip curl git unzip make perl xz-utils zstd jq fakeroot pkg-config libplist-dev libssl-dev dpkg-deb
 
           # 1. Cài ldid
           LDID_URL=$(curl -fsSL -H "Authorization: Bearer $GITHUB_TOKEN" https://api.github.com/repos/ProcursusTeam/ldid/releases \
@@ -35,7 +35,7 @@ jobs:
           git -C /tmp/iOS-SDKs sparse-checkout set iPhoneOS9.3.sdk
           cp -r /tmp/iOS-SDKs/iPhoneOS9.3.sdk "$THEOS/sdks/"
 
-      - name: Compile & Package IPA
+      - name: Compile & Package DEB
         env:
           THEOS: /home/runner/theos
         run: |
@@ -44,18 +44,33 @@ jobs:
           RAW_APP=$(find .theos/obj -maxdepth 3 -name "*.app" -type d | head -n 1)
           test -n "$RAW_APP"
 
-          mkdir -p Payload/iPodClassicU2.app
-          cp -r "$RAW_APP/"* Payload/iPodClassicU2.app/
+          mkdir -p deb_pkg/DEBIAN deb_pkg/Applications/iPodClassicU2.app
+          cp -r "$RAW_APP/"* deb_pkg/Applications/iPodClassicU2.app/
 
-          PLIST_PATH=$(find . -maxdepth 3 -name "Info.plist" -not -path "./.theos/*" -not -path "./Payload/*" | head -n 1)
+          PLIST_PATH=$(find . -maxdepth 3 -name "Info.plist" -not -path "./.theos/*" -not -path "./deb_pkg/*" | head -n 1)
           test -n "$PLIST_PATH"
-          cp "$PLIST_PATH" Payload/iPodClassicU2.app/Info.plist
-          cp Icon*.png Payload/iPodClassicU2.app/ 2>/dev/null || true
+          cp "$PLIST_PATH" deb_pkg/Applications/iPodClassicU2.app/Info.plist
+          cp Icon*.png deb_pkg/Applications/iPodClassicU2.app/ 2>/dev/null || true
 
-          ldid -S Payload/iPodClassicU2.app/iPodClassicU2
-          zip -qr iPodClassicU2.ipa Payload
+          ldid -S deb_pkg/Applications/iPodClassicU2.app/iPodClassicU2
+          chmod -R 0755 deb_pkg/Applications/iPodClassicU2.app
+          chmod 0644 deb_pkg/Applications/iPodClassicU2.app/Info.plist
+
+          cat << 'EOF' > deb_pkg/DEBIAN/control
+          Package: com.u2.ipodclassic
+          Name: iPod Classic U2
+          Version: 1.0.0
+          Architecture: iphoneos-arm
+          Description: iPod Classic U2 Edition for iOS 6
+          Maintainer: User
+          Author: User
+          Section: Utilities
+          EOF
+          chmod 0755 deb_pkg/DEBIAN
+
+          dpkg-deb -Zgzip -b deb_pkg iPodClassicU2.deb
 
       - uses: actions/upload-artifact@v4
         with:
-          name: iPodClassicU2-IPA
-          path: iPodClassicU2.ipa
+          name: iPodClassicU2-DEB
+          path: iPodClassicU2.deb
