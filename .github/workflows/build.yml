@@ -13,9 +13,9 @@ jobs:
           set -e
           sudo apt-get update && sudo apt-get install -y g++ zip curl git unzip make perl xz-utils zstd jq pkg-config libplist-dev libssl-dev
 
-          # 1. Cài ldid (tải binary từ ProcursusTeam, nếu không có sẽ tự biên dịch từ mã nguồn)
+          # 1. Cài ldid
           LDID_URL=$(curl -fsSL -H "Authorization: Bearer $GITHUB_TOKEN" https://api.github.com/repos/ProcursusTeam/ldid/releases \
-            | jq -r '.[0].assets[]? | select(.name | test("linux.*(x86_64|amd64)$"; "i")) | .browser_download_url' | head -n 1)
+            | jq -r '[.[].assets[]? | select(.name | test("linux.*(x86_64|amd64)$"; "i")) | .browser_download_url][0] // empty')
           if [ -n "$LDID_URL" ] && curl -fsSL "$LDID_URL" -o ldid; then
             chmod +x ldid && sudo mv ldid /usr/local/bin/ldid
           else
@@ -24,25 +24,26 @@ jobs:
             sudo cp /tmp/ldid/ldid /usr/local/bin/ldid
           fi
 
-          # 2. Cài Theos & Toolchain iOS cho Linux x86_64
+          # 2. Cài Theos & Toolchain iOS từ theos/toolchains
           git clone --recursive --depth 1 https://github.com/theos/theos.git "$THEOS"
           mkdir -p "$THEOS/toolchain/linux/iphone" "$THEOS/sdks"
 
-          TOOLCHAIN_URL=$(curl -fsSL -H "Authorization: Bearer $GITHUB_TOKEN" https://api.github.com/repos/theos/toolchain/releases \
-            | jq -r '.[0].assets[]? | select(.name | test("linux.*(x86_64|amd64)[.](tar[.](xz|zst|gz)|zip)$"; "i")) | .browser_download_url' | head -n 1)
+          TOOLCHAIN_URL=$(curl -fsSL -H "Authorization: Bearer $GITHUB_TOKEN" https://api.github.com/repos/theos/toolchains/releases \
+            | jq -r '[.[].assets[]? | select(.name | test("linux.*(x86_64|amd64)[.](tar[.](xz|zst|gz)|zip)$"; "i")) | .browser_download_url][0] // empty')
+          test -n "$TOOLCHAIN_URL"
           curl -fsSL "$TOOLCHAIN_URL" -o toolchain.pkg
           case "$TOOLCHAIN_URL" in
             *.zip) unzip -q toolchain.pkg -d "$THEOS/toolchain/linux/iphone" ;;
             *) tar -xf toolchain.pkg -C "$THEOS/toolchain/linux/iphone" ;;
           esac
-          CLANG_BIN=$(find "$THEOS/toolchain/linux/iphone" -name "clang" -type f | head -n 1)
+          CLANG_BIN=$(find "$THEOS/toolchain/linux/iphone" -name "clang" \( -type f -o -type l \) | head -n 1)
           TOOLCHAIN_ROOT=$(dirname "$(dirname "$CLANG_BIN")")
           if [ "$TOOLCHAIN_ROOT" != "$THEOS/toolchain/linux/iphone" ]; then
             mv "$TOOLCHAIN_ROOT/"* "$THEOS/toolchain/linux/iphone/"
           fi
           test -x "$THEOS/toolchain/linux/iphone/bin/clang"
 
-          # 3. Tải riêng iPhoneOS9.3.sdk (hỗ trợ kiến trúc 32-bit armv7 cho iOS 6)
+          # 3. Tải iPhoneOS9.3.sdk (hỗ trợ kiến trúc 32-bit armv7 cho iOS 6)
           git clone --depth 1 --filter=blob:none --sparse https://github.com/xybp888/iOS-SDKs.git /tmp/iOS-SDKs
           git -C /tmp/iOS-SDKs sparse-checkout set iPhoneOS9.3.sdk iPhoneOS10.3.sdk
           cp -r /tmp/iOS-SDKs/iPhoneOS*.sdk "$THEOS/sdks/"
