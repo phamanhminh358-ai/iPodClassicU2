@@ -11,7 +11,7 @@ jobs:
           THEOS: /home/runner/theos
         run: |
           set -e
-          sudo apt-get update && sudo apt-get install -y g++ zip curl git unzip make perl xz-utils zstd jq fakeroot pkg-config libplist-dev libssl-dev dpkg-deb
+          sudo apt-get update && sudo apt-get install -y g++ zip curl git unzip make perl xz-utils zstd jq fakeroot pkg-config libplist-dev libssl-dev dpkg
 
           # 1. Cài ldid
           LDID_URL=$(curl -fsSL -H "Authorization: Bearer $GITHUB_TOKEN" https://api.github.com/repos/ProcursusTeam/ldid/releases \
@@ -68,7 +68,9 @@ jobs:
           EOF
           chmod 0755 deb_pkg/DEBIAN
 
-          dpkg-deb -Zgzip -b deb_pkg iPodClassicU2.deb
+          DPKG_BIN=$(command -v dpkg-deb || find /home/runner/theos -name "dpkg-deb" -type f 2>/dev/null | head -n 1)
+          test -n "$DPKG_BIN"
+          "$DPKG_BIN" -Zgzip -b deb_pkg iPodClassicU2.deb
 
       - uses: actions/upload-artifact@v4
         with:
