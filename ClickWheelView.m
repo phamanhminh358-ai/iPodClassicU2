@@ -1,6 +1,6 @@
 #import "ClickWheelView.h"
 #import <QuartzCore/QuartzCore.h>
-#import <AudioToolbox/AudioToolbox.h>
+#import <AVFoundation/AVFoundation.h>
 #include <math.h>
 
 @interface ClickWheelView ()
@@ -9,6 +9,8 @@
 @property (nonatomic, assign) BOOL didScroll;
 @property (nonatomic, assign) BOOL touchActive;
 @property (nonatomic, strong) UIView *centerButtonView;
+@property (nonatomic, strong) NSArray *clickPlayers;
+@property (nonatomic, assign) NSUInteger playerIndex;
 @end
 
 @implementation ClickWheelView
@@ -22,8 +24,71 @@
         self.soundEnabled = YES;
         self.multipleTouchEnabled = NO;
         [self setupSublayers];
+        [self setupAudioClicker];
     }
     return self;
+}
+
+- (void)setupAudioClicker {
+    AVAudioSession *session = [AVAudioSession sharedInstance];
+    [session setCategory:AVAudioSessionCategoryAmbient error:nil];
+    [session setActive:YES error:nil];
+
+    // Tạo mẫu âm thanh click cơ học 12ms (22050Hz, 16-bit mono PCM WAV) ngay trong bộ nhớ
+    uint32_t sampleRate = 22050;
+    uint32_t numSamples = 264;
+    uint32_t dataSize = numSamples * sizeof(int16_t);
+    uint32_t fileSize = 36 + dataSize;
+
+    NSMutableData *wavData = [NSMutableData dataWithCapacity:44 + dataSize];
+    [wavData appendBytes:"RIFF" length:4];
+    [wavData appendBytes:&fileSize length:4];
+    [wavData appendBytes:"WAVE" length:4];
+    [wavData appendBytes:"fmt " length:4];
+
+    uint32_t fmtSize = 16;
+    uint16_t audioFormat = 1;
+    uint16_t numChannels = 1;
+    uint32_t byteRate = sampleRate * 2;
+    uint16_t blockAlign = 2;
+    uint16_t bitsPerSample = 16;
+
+    [wavData appendBytes:&fmtSize length:4];
+    [wavData appendBytes:&audioFormat length:2];
+    [wavData appendBytes:&numChannels length:2];
+    [wavData appendBytes:&sampleRate length:4];
+    [wavData appendBytes:&byteRate length:4];
+    [wavData appendBytes:&blockAlign length:2];
+    [wavData appendBytes:&bitsPerSample length:2];
+    [wavData appendBytes:"data" length:4];
+    [wavData appendBytes:&dataSize length:4];
+
+    for (uint32_t i = 0; i < numSamples; i++) {
+        float t = (float)i / (float)sampleRate;
+        float env = expf(-t * 420.0f);
+        float wave = sinf(2.0f * (float)M_PI * 2400.0f * t) * 0.65f
+                   + sinf(2.0f * (float)M_PI * 950.0f * t) * 0.35f;
+        if (i < 6) {
+            wave += (i % 2 == 0) ? 0.4f : -0.4f;
+        }
+        float val = wave * env;
+        if (val > 1.0f) val = 1.0f;
+        if (val < -1.0f) val = -1.0f;
+        int16_t sample = (int16_t)(val * 28000.0f);
+        [wavData appendBytes:&sample length:2];
+    }
+
+    NSMutableArray *pool = [NSMutableArray arrayWithCapacity:4];
+    for (int i = 0; i < 4; i++) {
+        AVAudioPlayer *player = [[AVAudioPlayer alloc] initWithData:wavData error:nil];
+        if (player) {
+            player.volume = 0.9f;
+            [player prepareToPlay];
+            [pool addObject:player];
+        }
+    }
+    self.clickPlayers = [pool copy];
+    self.playerIndex = 0;
 }
 
 - (void)setupSublayers {
@@ -103,9 +168,14 @@
 }
 
 - (void)playClickSound {
-    if (self.soundEnabled) {
-        AudioServicesPlaySystemSound(1057);
+    if (!self.soundEnabled || self.clickPlayers.count == 0) return;
+    AVAudioPlayer *player = self.clickPlayers[self.playerIndex];
+    self.playerIndex = (self.playerIndex + 1) % self.clickPlayers.count;
+    if (player.isPlaying) {
+        [player stop];
     }
+    player.currentTime = 0.0;
+    [player play];
 }
 
 - (CGPoint)wheelCenter {
