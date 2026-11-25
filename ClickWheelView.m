@@ -18,6 +18,7 @@
     if (self) {
         self.backgroundColor = [UIColor clearColor];
         self.clipsToBounds = NO;
+        self.opaque = NO;
         self.soundEnabled = YES;
         self.multipleTouchEnabled = NO;
         [self setupSublayers];
@@ -54,12 +55,12 @@
 - (void)drawRect:(CGRect)rect {
     CGContextRef ctx = UIGraphicsGetCurrentContext();
     CGFloat size = MIN(self.bounds.size.width, self.bounds.size.height);
-    // Trừ đủ lề để đỉnh trên và đáy dưới không bị lẹm khi vẽ viền
-    CGRect wheelRect = CGRectInset(CGRectMake(0, 0, size, size), 3.0f, 3.0f);
+    CGRect wheelRect = CGRectInset(CGRectMake(0.0f, 0.0f, size, size), 3.0f, 3.0f);
+
+    UIBezierPath *wheelPath = [UIBezierPath bezierPathWithOvalInRect:wheelRect];
 
     CGContextSaveGState(ctx);
-    CGContextAddEllipseInRect(ctx, wheelRect);
-    CGContextClip(ctx);
+    [wheelPath addClip];
 
     CGColorSpaceRef space = CGColorSpaceCreateDeviceRGB();
     NSArray *colors = @[
@@ -69,16 +70,17 @@
     ];
     CGFloat locations[] = {0.0f, 0.65f, 1.0f};
     CGGradientRef gradient = CGGradientCreateWithColors(space, (__bridge CFArrayRef)colors, locations);
-    CGPoint start = CGPointMake(size * 0.3f, size * 0.15f);
-    CGPoint end = CGPointMake(size * 0.7f, size * 0.9f);
+    CGPoint start = CGPointMake(size * 0.5f, 0.0f);
+    CGPoint end = CGPointMake(size * 0.5f, size);
     CGContextDrawLinearGradient(ctx, gradient, start, end, 0);
     CGGradientRelease(gradient);
     CGColorSpaceRelease(space);
     CGContextRestoreGState(ctx);
 
-    CGContextSetStrokeColorWithColor(ctx, [UIColor colorWithWhite:0.0f alpha:0.8f].CGColor);
-    CGContextSetLineWidth(ctx, 2.0f);
-    CGContextStrokeEllipseInRect(ctx, CGRectInset(wheelRect, 1.0f, 1.0f));
+    UIBezierPath *borderPath = [UIBezierPath bezierPathWithOvalInRect:CGRectInset(wheelRect, 1.0f, 1.0f)];
+    borderPath.lineWidth = 2.0f;
+    [[UIColor colorWithWhite:0.0f alpha:0.8f] setStroke];
+    [borderPath stroke];
 
     [[UIColor colorWithWhite:0.96f alpha:0.95f] setFill];
     UIFont *menuFont = [UIFont boldSystemFontOfSize:12.5f];
@@ -102,7 +104,7 @@
 
 - (void)playClickSound {
     if (self.soundEnabled) {
-        AudioServicesPlaySystemSound(1104);
+        AudioServicesPlaySystemSound(1057);
     }
 }
 
