@@ -17,6 +17,7 @@
     self = [super initWithFrame:frame];
     if (self) {
         self.backgroundColor = [UIColor clearColor];
+        self.clipsToBounds = NO;
         self.soundEnabled = YES;
         self.multipleTouchEnabled = NO;
         [self setupSublayers];
@@ -52,15 +53,14 @@
 
 - (void)drawRect:(CGRect)rect {
     CGContextRef ctx = UIGraphicsGetCurrentContext();
-    CGFloat size = MIN(rect.size.width, rect.size.height);
-    CGRect wheelRect = CGRectInset(CGRectMake(0, 0, size, size), 2.0f, 2.0f);
+    CGFloat size = MIN(self.bounds.size.width, self.bounds.size.height);
+    // Trừ đủ lề để đỉnh trên và đáy dưới không bị lẹm khi vẽ viền
+    CGRect wheelRect = CGRectInset(CGRectMake(0, 0, size, size), 3.0f, 3.0f);
 
-    // Đổ bóng viền ngoài Click Wheel
     CGContextSaveGState(ctx);
     CGContextAddEllipseInRect(ctx, wheelRect);
     CGContextClip(ctx);
 
-    // Màu đỏ đặc trưng của iPod U2 Special Edition
     CGColorSpaceRef space = CGColorSpaceCreateDeviceRGB();
     NSArray *colors = @[
         (id)[UIColor colorWithRed:0.86f green:0.08f blue:0.20f alpha:1.0f].CGColor,
@@ -76,12 +76,10 @@
     CGColorSpaceRelease(space);
     CGContextRestoreGState(ctx);
 
-    // Viền mảnh phân cách vỏ đen và vòng đỏ
     CGContextSetStrokeColorWithColor(ctx, [UIColor colorWithWhite:0.0f alpha:0.8f].CGColor);
     CGContextSetLineWidth(ctx, 2.0f);
-    CGContextStrokeEllipseInRect(ctx, wheelRect);
+    CGContextStrokeEllipseInRect(ctx, CGRectInset(wheelRect, 1.0f, 1.0f));
 
-    // Vẽ chữ và biểu tượng 4 hướng màu trắng sắc nét
     [[UIColor colorWithWhite:0.96f alpha:0.95f] setFill];
     UIFont *menuFont = [UIFont boldSystemFontOfSize:12.5f];
     NSString *menuText = @"MENU";
@@ -148,7 +146,6 @@
     CGFloat dist = sqrtf(dx * dx + dy * dy);
     CGFloat innerR = self.centerButtonView.bounds.size.width / 2.0f;
 
-    // Bỏ qua xoay nếu ngón tay đang nằm trong nút giữa
     if (dist < innerR * 0.9f) return;
 
     CGFloat currentAngle = atan2f(dy, dx);
@@ -160,7 +157,6 @@
     self.accumulatedAngle += delta;
     self.lastAngle = currentAngle;
 
-    // Mỗi 14 độ xoay tương ứng 1 nấc danh sách
     CGFloat stepThreshold = 14.0f * (M_PI / 180.0f);
     NSInteger steps = 0;
 
@@ -207,7 +203,7 @@
     if (dist <= innerR) {
         pressed = ClickWheelButtonSelect;
     } else {
-        CGFloat angle = atan2f(dy, dx); // -PI tới PI
+        CGFloat angle = atan2f(dy, dx);
         if (angle >= -3.0f * M_PI / 4.0f && angle < -M_PI / 4.0f) {
             pressed = ClickWheelButtonMenu;
         } else if (angle >= -M_PI / 4.0f && angle < M_PI / 4.0f) {
