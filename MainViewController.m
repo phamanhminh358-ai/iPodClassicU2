@@ -8,7 +8,6 @@
 @property (nonatomic, strong) ClassicLCDView *lcdView;
 @property (nonatomic, strong) ClickWheelView *clickWheel;
 @property (nonatomic, strong) NSMutableArray *menuStack;
-
 @property (nonatomic, strong) MPMusicPlayerController *musicPlayer;
 @property (nonatomic, strong) NSArray *librarySongs;
 @property (nonatomic, assign) BOOL usingDemoLibrary;
@@ -25,7 +24,6 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
 
-    // Vỏ máy Piano Black bóng đặc trưng của iPod U2 Special Edition
     self.view.backgroundColor = [UIColor colorWithRed:0.04f green:0.04f blue:0.05f alpha:1.0f];
     CAGradientLayer *bodyGrad = [CAGradientLayer layer];
     bodyGrad.frame = self.view.bounds;
@@ -38,17 +36,21 @@
     CGFloat screenW = self.view.bounds.size.width;
     CGFloat screenH = self.view.bounds.size.height;
 
-    // Nửa trên: Màn hình LCD iPod Classic (tỷ lệ chuẩn cho 320x480)
+    // Căn tỷ lệ cho màn 320x480: chừa đủ không gian để Click Wheel tròn vẹn, không lẹm đỉnh/đáy
     CGFloat lcdMarginX = 12.0f;
     CGFloat lcdW = screenW - lcdMarginX * 2.0f;
-    CGFloat lcdH = roundf(screenH * 0.43f);
-    self.lcdView = [[ClassicLCDView alloc] initWithFrame:CGRectMake(lcdMarginX, 14.0f, lcdW, lcdH)];
+    CGFloat lcdTop = 12.0f;
+    CGFloat lcdH = 192.0f;
+    self.lcdView = [[ClassicLCDView alloc] initWithFrame:CGRectMake(lcdMarginX, lcdTop, lcdW, lcdH)];
     [self.view addSubview:self.lcdView];
 
-    // Nửa dưới: Click Wheel màu đỏ U2
-    CGFloat wheelSize = MIN(224.0f, roundf(screenH * 0.46f));
+    CGFloat wheelAreaTop = lcdTop + lcdH + 10.0f;
+    CGFloat wheelAreaBottom = screenH - 10.0f;
+    CGFloat wheelAreaH = wheelAreaBottom - wheelAreaTop;
+    CGFloat wheelSize = MIN(216.0f, wheelAreaH);
     CGFloat wheelX = roundf((screenW - wheelSize) / 2.0f);
-    CGFloat wheelY = lcdH + roundf((screenH - lcdH - wheelSize) / 2.0f) + 6.0f;
+    CGFloat wheelY = roundf(wheelAreaTop + (wheelAreaH - wheelSize) / 2.0f);
+
     self.clickWheel = [[ClickWheelView alloc] initWithFrame:CGRectMake(wheelX, wheelY, wheelSize, wheelSize)];
     self.clickWheel.delegate = self;
     [self.view addSubview:self.clickWheel];
