@@ -7,7 +7,6 @@
 @property (nonatomic, strong) UILabel *playIndicatorLabel;
 @property (nonatomic, strong) UIView *batteryFillView;
 
-// Split-Screen Menu Container
 @property (nonatomic, strong) UIView *menuContainer;
 @property (nonatomic, strong) UITableView *tableView;
 @property (nonatomic, strong) UIView *previewPane;
@@ -17,7 +16,6 @@
 @property (nonatomic, strong) NSArray *menuItems;
 @property (nonatomic, assign) NSInteger selectedRow;
 
-// Now Playing Container
 @property (nonatomic, strong) UIView *nowPlayingContainer;
 @property (nonatomic, strong) UIImageView *npArtworkView;
 @property (nonatomic, strong) UIImageView *npReflectionView;
@@ -84,7 +82,6 @@
     self.headerLabel.text = @"iPod";
     [self.statusBarView addSubview:self.headerLabel];
 
-    // Icon pin iPod cổ điển
     UIView *batOutline = [[UIView alloc] initWithFrame:CGRectMake(w - 30, 6, 21, 10)];
     batOutline.layer.borderWidth = 1.0f;
     batOutline.layer.borderColor = [UIColor colorWithWhite:0.25f alpha:1.0f].CGColor;
@@ -115,6 +112,7 @@
     self.tableView.dataSource = self;
     self.tableView.delegate = self;
     self.tableView.rowHeight = 26.0f;
+    self.tableView.backgroundColor = [UIColor whiteColor];
     self.tableView.separatorStyle = UITableViewCellSeparatorStyleNone;
     self.tableView.userInteractionEnabled = NO;
     [self.menuContainer addSubview:self.tableView];
@@ -127,22 +125,22 @@
     self.previewPane = [[UIView alloc] initWithFrame:CGRectMake(leftW + 1.0f, 0, rightW, h)];
     self.previewPane.backgroundColor = [UIColor colorWithRed:0.96f green:0.97f blue:0.99f alpha:1.0f];
 
-    CGFloat imgSize = 86.0f;
-    self.previewImageView = [[UIImageView alloc] initWithFrame:CGRectMake(roundf((rightW - imgSize) / 2.0f), 14.0f, imgSize, imgSize)];
+    CGFloat imgSize = 82.0f;
+    self.previewImageView = [[UIImageView alloc] initWithFrame:CGRectMake(roundf((rightW - imgSize) / 2.0f), 12.0f, imgSize, imgSize)];
     self.previewImageView.contentMode = UIViewContentModeScaleAspectFill;
     self.previewImageView.clipsToBounds = YES;
     self.previewImageView.layer.borderWidth = 1.0f;
     self.previewImageView.layer.borderColor = [UIColor colorWithWhite:0.75f alpha:1.0f].CGColor;
     [self.previewPane addSubview:self.previewImageView];
 
-    self.previewTitleLabel = [[UILabel alloc] initWithFrame:CGRectMake(6, 106, rightW - 12, 18)];
+    self.previewTitleLabel = [[UILabel alloc] initWithFrame:CGRectMake(6, 100, rightW - 12, 18)];
     self.previewTitleLabel.backgroundColor = [UIColor clearColor];
     self.previewTitleLabel.font = [UIFont boldSystemFontOfSize:11.5f];
     self.previewTitleLabel.textAlignment = NSTextAlignmentCenter;
     self.previewTitleLabel.textColor = [UIColor colorWithWhite:0.15f alpha:1.0f];
     [self.previewPane addSubview:self.previewTitleLabel];
 
-    self.previewSubLabel = [[UILabel alloc] initWithFrame:CGRectMake(6, 124, rightW - 12, 32)];
+    self.previewSubLabel = [[UILabel alloc] initWithFrame:CGRectMake(6, 118, rightW - 12, 32)];
     self.previewSubLabel.backgroundColor = [UIColor clearColor];
     self.previewSubLabel.font = [UIFont systemFontOfSize:10.5f];
     self.previewSubLabel.textAlignment = NSTextAlignmentCenter;
@@ -161,8 +159,7 @@
     self.nowPlayingContainer.backgroundColor = [UIColor whiteColor];
     self.nowPlayingContainer.hidden = YES;
 
-    // Ảnh bìa Album nghiêng 3D đặc trưng iPod Classic
-    self.npArtworkView = [[UIImageView alloc] initWithFrame:CGRectMake(14, 14, 102, 102)];
+    self.npArtworkView = [[UIImageView alloc] initWithFrame:CGRectMake(14, 12, 96, 96)];
     self.npArtworkView.contentMode = UIViewContentModeScaleAspectFill;
     self.npArtworkView.clipsToBounds = YES;
     self.npArtworkView.layer.borderWidth = 1.0f;
@@ -174,8 +171,7 @@
     self.npArtworkView.layer.transform = tilt;
     [self.nowPlayingContainer addSubview:self.npArtworkView];
 
-    // Bóng phản chiếu dưới bìa đĩa
-    self.npReflectionView = [[UIImageView alloc] initWithFrame:CGRectMake(14, 117, 102, 22)];
+    self.npReflectionView = [[UIImageView alloc] initWithFrame:CGRectMake(14, 109, 96, 20)];
     self.npReflectionView.contentMode = UIViewContentModeScaleAspectFill;
     self.npReflectionView.clipsToBounds = YES;
     self.npReflectionView.alpha = 0.22f;
@@ -183,42 +179,41 @@
     self.npReflectionView.layer.transform = flip;
     [self.nowPlayingContainer addSubview:self.npReflectionView];
 
-    CGFloat infoX = 126.0f;
+    CGFloat infoX = 122.0f;
     CGFloat infoW = w - infoX - 10.0f;
 
-    self.npTrackCountLabel = [[UILabel alloc] initWithFrame:CGRectMake(infoX, 12, infoW, 15)];
+    self.npTrackCountLabel = [[UILabel alloc] initWithFrame:CGRectMake(infoX, 10, infoW, 15)];
     self.npTrackCountLabel.backgroundColor = [UIColor clearColor];
     self.npTrackCountLabel.font = [UIFont boldSystemFontOfSize:10.5f];
     self.npTrackCountLabel.textColor = [UIColor colorWithWhite:0.45f alpha:1.0f];
     [self.nowPlayingContainer addSubview:self.npTrackCountLabel];
 
-    self.npTitleLabel = [[UILabel alloc] initWithFrame:CGRectMake(infoX, 30, infoW, 20)];
+    self.npTitleLabel = [[UILabel alloc] initWithFrame:CGRectMake(infoX, 26, infoW, 20)];
     self.npTitleLabel.backgroundColor = [UIColor clearColor];
-    self.npTitleLabel.font = [UIFont boldSystemFontOfSize:13.5f];
+    self.npTitleLabel.font = [UIFont boldSystemFontOfSize:13.0f];
     self.npTitleLabel.textColor = [UIColor blackColor];
     [self.nowPlayingContainer addSubview:self.npTitleLabel];
 
-    self.npArtistLabel = [[UILabel alloc] initWithFrame:CGRectMake(infoX, 52, infoW, 18)];
+    self.npArtistLabel = [[UILabel alloc] initWithFrame:CGRectMake(infoX, 48, infoW, 18)];
     self.npArtistLabel.backgroundColor = [UIColor clearColor];
     self.npArtistLabel.font = [UIFont boldSystemFontOfSize:11.5f];
     self.npArtistLabel.textColor = [UIColor colorWithWhite:0.35f alpha:1.0f];
     [self.nowPlayingContainer addSubview:self.npArtistLabel];
 
-    self.npAlbumLabel = [[UILabel alloc] initWithFrame:CGRectMake(infoX, 70, infoW, 18)];
+    self.npAlbumLabel = [[UILabel alloc] initWithFrame:CGRectMake(infoX, 66, infoW, 18)];
     self.npAlbumLabel.backgroundColor = [UIColor clearColor];
     self.npAlbumLabel.font = [UIFont systemFontOfSize:11.0f];
     self.npAlbumLabel.textColor = [UIColor colorWithWhite:0.45f alpha:1.0f];
     [self.nowPlayingContainer addSubview:self.npAlbumLabel];
 
-    self.ratingLabel = [[UILabel alloc] initWithFrame:CGRectMake(infoX, 94, infoW, 20)];
+    self.ratingLabel = [[UILabel alloc] initWithFrame:CGRectMake(infoX, 88, infoW, 20)];
     self.ratingLabel.backgroundColor = [UIColor clearColor];
     self.ratingLabel.font = [UIFont boldSystemFontOfSize:14.0f];
     self.ratingLabel.textColor = [UIColor colorWithRed:0.12f green:0.42f blue:0.92f alpha:1.0f];
     self.ratingLabel.hidden = YES;
     [self.nowPlayingContainer addSubview:self.ratingLabel];
 
-    // Thanh tiến trình (Scrubber Bar) phía dưới
-    CGFloat barY = h - 34.0f;
+    CGFloat barY = h - 30.0f;
     CGFloat barX = 46.0f;
     CGFloat barW = w - 92.0f;
 
@@ -350,8 +345,9 @@
     if (!cell) {
         cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:cellId];
         cell.selectionStyle = UITableViewCellSelectionStyleNone;
+        cell.contentView.backgroundColor = [UIColor clearColor];
+        cell.textLabel.backgroundColor = [UIColor clearColor];
         cell.textLabel.font = [UIFont boldSystemFontOfSize:12.5f];
-        cell.detailTextLabel.font = [UIFont boldSystemFontOfSize:12.5f];
     }
 
     NSDictionary *item = self.menuItems[indexPath.row];
@@ -362,9 +358,12 @@
     cell.accessoryType = hasArrow ? UITableViewCellAccessoryDisclosureIndicator : UITableViewCellAccessoryNone;
 
     if (isSelected) {
-        cell.backgroundColor = [UIColor colorWithRed:0.11f green:0.41f blue:0.93f alpha:1.0f];
+        UIView *selectedBg = [[UIView alloc] initWithFrame:cell.bounds];
+        selectedBg.backgroundColor = [UIColor colorWithRed:0.10f green:0.42f blue:0.94f alpha:1.0f];
+        cell.backgroundView = selectedBg;
         cell.textLabel.textColor = [UIColor whiteColor];
     } else {
+        cell.backgroundView = nil;
         cell.backgroundColor = [UIColor whiteColor];
         cell.textLabel.textColor = [UIColor colorWithWhite:0.10f alpha:1.0f];
     }
